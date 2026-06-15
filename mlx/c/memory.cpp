@@ -44,6 +44,24 @@ extern "C" int mlx_get_memory_limit(size_t* res) {
   }
   return 0;
 }
+extern "C" int mlx_get_num_resources(size_t* res) {
+  try {
+    *res = mlx::core::get_num_resources();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+extern "C" int mlx_get_resource_limit(size_t* res) {
+  try {
+    *res = mlx::core::get_resource_limit();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_get_peak_memory(size_t* res) {
   try {
     *res = mlx::core::get_peak_memory();
