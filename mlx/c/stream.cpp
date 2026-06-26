@@ -116,3 +116,21 @@ extern "C" mlx_stream mlx_default_gpu_stream_new(void) {
     return mlx_stream_new_();
   }
 }
+extern "C" mlx_stream mlx_thread_unsafe_cpu_stream_new(void) {
+  try {
+    return mlx_stream_new_(
+        mlx::core::new_thread_unsafe_stream(mlx::core::Device::DeviceType::cpu));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return mlx_stream_new_();
+  }
+}
+extern "C" mlx_stream mlx_thread_unsafe_gpu_stream_new(void) {
+  try {
+    return mlx_stream_new_(
+        mlx::core::new_thread_unsafe_stream(mlx::core::Device::DeviceType::gpu));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return mlx_stream_new_();
+  }
+}
