@@ -611,6 +611,29 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
     const mlx_array mask_arr /* may be null */,
     const mlx_array sinks /* may be null */,
     const mlx_stream s) {
+  return mlx_fast_scaled_dot_product_attention_v2(
+      res,
+      queries,
+      keys,
+      values,
+      scale,
+      mask_mode,
+      mask_arr,
+      sinks,
+      false,
+      s);
+}
+extern "C" int mlx_fast_scaled_dot_product_attention_v2(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    bool force_fused,
+    const mlx_stream s) {
   try {
     mlx_array_set_(
         *res,
@@ -624,6 +647,7 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
                           : std::nullopt),
             (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
                        : std::nullopt),
+            force_fused,
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());

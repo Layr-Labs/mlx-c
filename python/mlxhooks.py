@@ -394,6 +394,92 @@ mlx_fast_metal_kernel mlx_fast_metal_kernel_new(
     __implement_mlx_fast_custom_kernel("metal", custom_code, implementation)
 
 
+def mlx_fast_scaled_dot_product_attention(f, implementation):
+    if implementation:
+        print(
+            """\
+extern "C" int mlx_fast_scaled_dot_product_attention(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    const mlx_stream s) {
+  return mlx_fast_scaled_dot_product_attention_v2(
+      res,
+      queries,
+      keys,
+      values,
+      scale,
+      mask_mode,
+      mask_arr,
+      sinks,
+      false,
+      s);
+}
+extern "C" int mlx_fast_scaled_dot_product_attention_v2(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    bool force_fused,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::scaled_dot_product_attention(
+            mlx_array_get_(queries),
+            mlx_array_get_(keys),
+            mlx_array_get_(values),
+            scale,
+            std::string(mask_mode),
+            (mask_arr.ctx ? std::make_optional(mlx_array_get_(mask_arr))
+                          : std::nullopt),
+            (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
+                       : std::nullopt),
+            force_fused,
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}"""
+        )
+    else:
+        print(
+            """\
+int mlx_fast_scaled_dot_product_attention(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    const mlx_stream s);
+int mlx_fast_scaled_dot_product_attention_v2(
+    mlx_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    float scale,
+    const char* mask_mode,
+    const mlx_array mask_arr /* may be null */,
+    const mlx_array sinks /* may be null */,
+    bool force_fused,
+    const mlx_stream s);"""
+        )
+
+
 def mlx_load_gguf(f, implementation):
     if not implementation:
         print(
