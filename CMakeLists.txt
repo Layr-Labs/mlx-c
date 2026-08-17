@@ -13,6 +13,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build mlx C as a shared library" OFF)
 option(MLX_C_BUILD_EXAMPLES "Build examples for mlx C" ON)
+option(MLX_C_BUILD_TESTS "Build tests for mlx C" ON)
 option(MLX_C_USE_SYSTEM_MLX "Use system MLX" OFF)
 
 # ----------------------------- mlx -----------------------------
@@ -34,8 +35,8 @@ if(MLX_C_USE_SYSTEM_MLX)
 else()
   FetchContent_Declare(
     mlx
-    GIT_REPOSITORY "https://github.com/ml-explore/mlx.git"
-    GIT_TAG v0.31.2)
+    GIT_REPOSITORY "https://github.com/Layr-Labs/mlx.git"
+    GIT_TAG d482ff2bdb285929adc210ed901fbdf967ede069)
   FetchContent_MakeAvailable(mlx)
 endif()
 
@@ -84,6 +85,24 @@ endif()
 
 if(MLX_C_BUILD_EXAMPLES)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples)
+endif()
+
+if(MLX_C_BUILD_TESTS)
+  enable_testing()
+
+  add_executable(mlx-c-fast-sdpa-legacy-test
+                 ${CMAKE_CURRENT_LIST_DIR}/tests/fast_sdpa_legacy.c)
+  target_link_libraries(mlx-c-fast-sdpa-legacy-test PRIVATE mlxc)
+  set_target_properties(mlx-c-fast-sdpa-legacy-test
+                        PROPERTIES LINKER_LANGUAGE CXX)
+  add_test(NAME mlx-c-fast-sdpa-legacy-test
+           COMMAND mlx-c-fast-sdpa-legacy-test)
+
+  add_executable(mlx-c-fast-sdpa-v2-test
+                 ${CMAKE_CURRENT_LIST_DIR}/tests/fast_sdpa_v2.c)
+  target_link_libraries(mlx-c-fast-sdpa-v2-test PRIVATE mlxc)
+  set_target_properties(mlx-c-fast-sdpa-v2-test PROPERTIES LINKER_LANGUAGE CXX)
+  add_test(NAME mlx-c-fast-sdpa-v2-test COMMAND mlx-c-fast-sdpa-v2-test)
 endif()
 
 # ----------------------------- Installation -----------------------------
