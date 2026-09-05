@@ -6,6 +6,7 @@
 #include "mlx/c/error.h"
 #include "mlx/c/private/mlx.h"
 #include "mlx/c/string.h"
+#include "mlx/transforms_impl.h"
 
 extern "C" size_t mlx_dtype_size(mlx_dtype dtype) {
   return mlx_dtype_to_cpp(dtype).size();
@@ -653,6 +654,22 @@ extern "C" int _mlx_array_is_row_contiguous(bool* res, const mlx_array arr) {
 extern "C" int _mlx_array_is_col_contiguous(bool* res, const mlx_array arr) {
   try {
     *res = mlx_array_get_(arr).flags().col_contiguous;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+// Non-evaluating identity for bounded immutable-constant caches. The caller
+// retains an array snapshot for every cached identity to prevent address ABA.
+extern "C" int _mlx_array_constant_cache_identity(
+    uintptr_t* identity, bool* can_cache, const mlx_array arr) {
+  try {
+    const auto& value = mlx_array_get_(arr);
+    *identity = value.id();
+    *can_cache = !mlx::core::detail::in_tracing() &&
+        !mlx::core::detail::retain_graph() && !value.is_tracer();
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
