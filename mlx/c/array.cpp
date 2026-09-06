@@ -661,6 +661,34 @@ extern "C" int _mlx_array_is_col_contiguous(bool* res, const mlx_array arr) {
   return 0;
 }
 
+extern "C" int mlx_array_get_buffer_info(
+    bool* available, size_t* allocated_bytes, size_t* data_offset,
+    size_t* data_elements, bool* row_contiguous, bool* unique,
+    const mlx_array arr) {
+  *available = false;
+  *allocated_bytes = 0;
+  *data_offset = 0;
+  *data_elements = 0;
+  *row_contiguous = false;
+  *unique = false;
+  try {
+    const auto& value = mlx_array_get_(arr);
+    if (!value.is_available() || !value.data_shared_ptr()) {
+      return 0;
+    }
+    *allocated_bytes = value.buffer().ptr() ? value.buffer_size() : 0;
+    *data_offset = value.offset();
+    *data_elements = value.data_size();
+    *row_contiguous = value.flags().row_contiguous;
+    *unique = value.is_donatable();
+    *available = true;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 // Non-evaluating identity for bounded immutable-constant caches. The caller
 // retains an array snapshot for every cached identity to prevent address ABA.
 extern "C" int _mlx_array_constant_cache_identity(
