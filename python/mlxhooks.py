@@ -506,3 +506,26 @@ extern "C" int mlx_node_namer_get_name(
         )
         pass
     return True
+
+
+def mlx_get_memory_snapshot(f, implementation):
+    if not implementation:
+        print(
+            "int mlx_get_memory_snapshot(size_t* active, size_t* cache, size_t* peak);"
+        )
+    else:
+        print(
+            '''\
+extern "C" int mlx_get_memory_snapshot(size_t* active, size_t* cache, size_t* peak) {
+  try {
+    auto snapshot = mlx::core::get_memory_snapshot();
+    *active = snapshot.active_memory;
+    *cache = snapshot.cache_memory;
+    *peak = snapshot.peak_memory;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}'''
+        )
