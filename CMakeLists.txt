@@ -34,8 +34,8 @@ if(MLX_C_USE_SYSTEM_MLX)
 else()
   FetchContent_Declare(
     mlx
-    GIT_REPOSITORY "https://github.com/ml-explore/mlx.git"
-    GIT_TAG v0.31.2)
+    GIT_REPOSITORY "https://github.com/Layr-Labs/mlx.git"
+    GIT_TAG 76a96e291fa9b1db946f8d5b7d1091110d672cac)
   FetchContent_MakeAvailable(mlx)
 endif()
 

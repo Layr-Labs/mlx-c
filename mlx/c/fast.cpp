@@ -475,6 +475,28 @@ extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new(
   return {nullptr};
 }
 
+extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_mutable(
+    const char* name,
+    const mlx_vector_string input_names,
+    const mlx_vector_string output_names,
+    const char* source,
+    const char* header,
+    bool ensure_row_contiguous,
+    bool atomic_outputs,
+    const mlx_vector_string mutable_input_names) {
+  try {
+    return mlx_fast_metal_kernel({new mlx_fast_metal_kernel_cpp_(
+        mlx::core::fast::metal_kernel_with_mutable_inputs(
+            name, mlx_vector_string_get_(input_names),
+            mlx_vector_string_get_(output_names), source,
+            mlx_vector_string_get_(mutable_input_names), header,
+            ensure_row_contiguous, atomic_outputs))});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+  }
+  return {nullptr};
+}
+
 inline mlx::core::fast::CustomKernelFunction& mlx_fast_metal_kernel_get_(
     mlx_fast_metal_kernel d) {
   if (!d.ctx) {
