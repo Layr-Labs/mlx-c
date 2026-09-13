@@ -1,5 +1,7 @@
 # MLX C
 
+> **This is a fork.** `Layr-Labs/mlx-c` tracks [`ml-explore/mlx-c`](https://github.com/ml-explore/mlx-c) and adds the C entry points Layr-Labs' Swift inference stack needs from its forked MLX core. Everything changed relative to upstream is published as a fork diff at **https://layr-labs.github.io/mlx-c/**, described in [`fork.yaml`](fork.yaml) and kept honest by CI — see [FORKDIFF.md](FORKDIFF.md).
+
 MLX C is a C API for [MLX](https://github.com/ml-explore/mlx).
 
 MLX is an array framework for machine learning on Apple silicon. MLX C expands
