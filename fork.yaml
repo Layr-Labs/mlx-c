@@ -1,0 +1,124 @@
+title: "Layr-Labs/mlx-c - MLX C fork diff overview"
+footer: |
+  Fork-diff overview of [`Layr-Labs/mlx-c`](https://github.com/Layr-Labs/mlx-c), a fork of
+  [`ml-explore/mlx-c`](https://github.com/ml-explore/mlx-c) &middot; the C bridge in Layr-Labs'
+  Apple-silicon inference stack ([`mlx`](https://github.com/Layr-Labs/mlx) →
+  [`mlx-c`](https://github.com/Layr-Labs/mlx-c) → [`mlx-swift`](https://github.com/Layr-Labs/mlx-swift) →
+  [`mlx-swift-lm`](https://github.com/Layr-Labs/mlx-swift-lm)) &middot; created with
+  [Forkdiff](https://github.com/protolambda/forkdiff)
+base:
+  name: ml-explore/mlx-c
+  url: https://github.com/ml-explore/mlx-c
+  # The upstream commit this fork is rebased onto. CI (`scripts/check_forkdiff.py`)
+  # requires this to equal `git merge-base HEAD upstream/main`, so a rebase onto
+  # newer upstream fails the gate until the hash — and the sections below — are
+  # brought up to date. Upstream main as of 2026-04-23 (bindings for MLX 0.31.2).
+  hash: fba4470b89073180056c9ea46c443051375f7399
+fork:
+  name: Layr-Labs/mlx-c
+  url: https://github.com/Layr-Labs/mlx-c
+  ref: refs/heads/main
+def:
+  title: "Layr-Labs/mlx-c"
+  description: |
+    This is an overview of the changes in [`Layr-Labs/mlx-c`](https://github.com/Layr-Labs/mlx-c),
+    a fork of [`ml-explore/mlx-c`](https://github.com/ml-explore/mlx-c).
+
+    MLX C is the C boundary between the MLX core and every other language binding. Layr-Labs
+    runs an LLM/VLM serving stack on Apple silicon — continuous batching, paged KV caches,
+    MoE and quantized kernels — built as [`mlx-swift-lm`](https://github.com/Layr-Labs/mlx-swift-lm)
+    on [`mlx-swift`](https://github.com/Layr-Labs/mlx-swift), which links a forked
+    [`mlx`](https://github.com/Layr-Labs/mlx) core through this fork. Every change here is a
+    **carry-patch**: a thin C wrapper over a function the forked core added, so Swift can reach
+    it. The upstream API and ABI are left untouched; the fork only adds entry points, and pins
+    the core it builds against to the Layr-Labs revision that provides them.
+
+    Downstream consumers are named per section so a change here can be traced to the Swift
+    symbol that needs it.
+  sub:
+    - title: "Core pin"
+      description: |
+        `CMakeLists.txt` fetches the MLX core from `Layr-Labs/mlx` at an exact commit instead of
+        an upstream release tag. The C functions below wrap core functions that only exist on the
+        fork, so the pin is what makes them link; it is bumped together with the header changes
+        each time the core gains a new entry point.
+      globs:
+        - "CMakeLists.txt"
+    - title: "Memory: allocator observability and footprint policy"
+      description: |
+        The Swift admission code decides whether a request fits by asking the allocator, and the
+        upstream C API only offered independent counters. The fork adds, in order of arrival:
+
+        - `mlx_get_num_resources` / `mlx_get_resource_limit` — the live Metal buffer *count* and
+          its hard ceiling, the quantity behind the `[metal::malloc] Resource limit exceeded`
+          crash (consumed as `Memory.numResources` / `Memory.resourceLimit` in mlx-swift).
+        - `mlx_get_memory_snapshot` — one coherent active/cache/peak observation instead of three
+          separate calls that can straddle an allocation.
+        - `mlx_get_allocation_footprint_policy` and its checked `_bound` / `_maximum_extra`
+          helpers — the allocator's immutable rounding geometry (alignment, rounding threshold,
+          minimum allocation, power-of-two cut-off, cache page size) so callers can compute the
+          real footprint of a requested size without allocating; bound helpers return 1 on an
+          invalid policy or overflow without raising through the error callback.
+        - `mlx_get_allocation_size_upper_bound` — the same bound for the current policy.
+
+        The generator override in `python/mlxhooks.py` keeps `mlx_get_memory_snapshot` intact
+        when the bindings are regenerated from the core headers.
+      globs:
+        - "mlx/c/memory.h"
+        - "mlx/c/memory.cpp"
+        - "python/mlxhooks.py"
+    - title: "Array: buffer metadata and constant-cache identity"
+      description: |
+        Two non-evaluating inspections the quantized-inference path in mlx-swift relies on:
+
+        - `mlx_array_get_buffer_info` — backing metadata (allocated bytes, data offset, element
+          count, row-contiguity, uniqueness) for an *already evaluated* array. Unavailable backing
+          is reported as `available=false` rather than forcing an eval or a stream sync; views may
+          report shared backing and the fields confer no ownership.
+        - `_mlx_array_constant_cache_identity` — the backing descriptor's identity plus a
+          transform-safety predicate, so a Swift constant cache can reuse an unchanged constant's
+          exact cast across calls without mistaking a mutated array for its former contents. It
+          refuses compile/autodiff tracing and retained graphs, and never evaluates, hashes, or
+          reads data back. Marked internal: the caller must retain the source descriptor while
+          the identity is cached.
+      globs:
+        - "mlx/c/array.h"
+        - "mlx/c/array.cpp"
+    - title: "Fast: mutable-input Metal kernels and the SDPA signature"
+      description: |
+        - `mlx_fast_metal_kernel_new_mutable` — a second constructor for custom Metal kernels
+          that declares which caller-owned input buffers the kernel writes (the core's
+          mutable-input contract, used for in-place paged KV updates). The existing constructor
+          and its read-only ABI are unchanged.
+        - The scaled-dot-product-attention binding passes the `force_fused` argument MLX 0.32.2
+          added to the core call, as `false`, so the C signature and pre-0.32.2 behaviour are
+          preserved.
+      globs:
+        - "mlx/c/fast.h"
+        - "mlx/c/fast.cpp"
+    - title: "Stream: cross-thread default streams"
+      description: |
+        MLX 0.32 made the default stream's Metal command encoder thread-local, so a graph built
+        on one thread and evaluated on another — Swift `async/await` continuations, actor
+        executors — aborts with `There is no Stream(gpu, N) in current thread`.
+        `mlx_thread_unsafe_cpu_stream_new` / `mlx_thread_unsafe_gpu_stream_new` expose the
+        core's `new_thread_unsafe_stream`, whose encoder is registered globally, letting
+        mlx-swift restore a single process-wide default stream. "Thread-unsafe" means the caller
+        serializes submission; it is not locked for concurrent multi-thread use.
+      globs:
+        - "mlx/c/stream.h"
+        - "mlx/c/stream.cpp"
+    - title: "Fork tooling"
+      description: |
+        The gate that keeps this page honest: `check_forkdiff.py` fails CI when `base.hash`
+        is not the merge-base with upstream, or when a file the fork changes is not described
+        by a section above. `FORKDIFF.md` explains the day-to-day; the README links the page.
+      globs:
+        - "scripts/check_forkdiff.py"
+        - "FORKDIFF.md"
+        - "README.md"
+
+# ignored globally, does not count towards line count
+ignore:
+  - "fork.yaml"
+  - ".github/**"
