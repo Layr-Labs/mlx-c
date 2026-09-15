@@ -42,7 +42,8 @@ extern "C" int mlx_detail_compile(
 }
 extern "C" int mlx_detail_compile_clear_cache(void) {
   try {
-    mlx::core::detail::compile_clear_cache();
+    auto cache = mlx::core::detail::compile_cache();
+    mlx::core::detail::compile_clear_cache(cache);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
@@ -51,7 +52,8 @@ extern "C" int mlx_detail_compile_clear_cache(void) {
 }
 extern "C" int mlx_detail_compile_erase(uintptr_t fun_id) {
   try {
-    mlx::core::detail::compile_erase(fun_id);
+    auto cache = mlx::core::detail::compile_cache();
+    mlx::core::detail::compile_erase(cache, fun_id);
   } catch (std::exception& e) {
     mlx_error(e.what());
     return 1;
