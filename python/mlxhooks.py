@@ -391,6 +391,10 @@ mlx_fast_metal_kernel mlx_fast_metal_kernel_new(
     bool ensure_row_contiguous,
     bool atomic_outputs);
         """
+    # Retain the fork's mutable-input constructor and explicit per-kernel
+    # options when regenerating fast.h/fast.cpp.
+    from metal_kernel_options import extensions
+    custom_code += extensions(implementation)
     __implement_mlx_fast_custom_kernel("metal", custom_code, implementation)
 
 
