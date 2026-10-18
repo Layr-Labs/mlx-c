@@ -59,6 +59,7 @@ set(mlxc-src
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/linalg.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/map.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/memory.cpp
+    mlx/c/memory_cap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/metal.cpp
     # ${CMAKE_CURRENT_LIST_DIR}/mlx/c/object.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/ops.cpp
