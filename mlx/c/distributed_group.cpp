@@ -41,6 +41,37 @@ mlx_distributed_init(mlx_distributed_group* res, bool strict, const char* bk) {
   }
 }
 
+extern "C" int mlx_distributed_group_begin_startup_wait_budget(
+    mlx_distributed_group group,
+    int64_t timeout_ms) {
+  if (!group.ctx || timeout_ms <= 0 || timeout_ms > 900000) {
+    mlx_error("Startup wait requires an initialized group and 1..900000 ms");
+    return 1;
+  }
+  try {
+    mlx_distributed_group_get_(group).begin_startup_wait_budget(timeout_ms);
+    return 0;
+  } catch (std::exception& e) {
+    mlx_error("%s", e.what());
+    return 1;
+  }
+}
+
+extern "C" int mlx_distributed_group_end_startup_wait_budget(
+    mlx_distributed_group group) {
+  if (!group.ctx) {
+    mlx_error("Startup wait requires an initialized group");
+    return 1;
+  }
+  try {
+    mlx_distributed_group_get_(group).end_startup_wait_budget();
+    return 0;
+  } catch (std::exception& e) {
+    mlx_error("%s", e.what());
+    return 1;
+  }
+}
+
 extern "C" int mlx_distributed_group_rank(mlx_distributed_group group) {
   try {
     return mlx_distributed_group_get_(group).rank();
