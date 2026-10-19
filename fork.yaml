@@ -42,6 +42,8 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
+        The current pin also preserves 512- and 1024-thread custom Metal launch geometry
+        while retrying an insufficient pipeline with its explicit compiler capacity.
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
