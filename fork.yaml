@@ -46,7 +46,8 @@ def:
         while retrying an insufficient pipeline with its explicit compiler capacity,
         orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
         collective between two GPU passes could otherwise leave the GPU spinning forever),
-        and carries 1 MiB JACCL frames.
+        and carries 1 MiB JACCL frames, batched buffer retention and a cached custom-kernel
+        source per kernel (host time only).
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
