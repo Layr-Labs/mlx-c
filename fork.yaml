@@ -46,8 +46,9 @@ def:
         while retrying an insufficient pipeline with its explicit compiler capacity,
         orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
         collective between two GPU passes could otherwise leave the GPU spinning forever),
-        and carries 1 MiB JACCL frames, batched buffer retention and a cached custom-kernel
-        source per kernel (host time only).
+        and carries 1 MiB JACCL frames, batched buffer retention, a cached custom-kernel
+        source per kernel (host time only) and the streamed sealed all-sum (per-piece
+        AES-256-GCM over a two-rank JACCL exchange).
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
@@ -127,7 +128,9 @@ def:
     - title: "Cluster bootstrap, sealed collectives and allocation caps"
       description: |
         The feature branch carries the bounded owner-provided bootstrap exchange,
-        sealed two-rank all-sum bridge and optional process-allocation cap API.
+        sealed two-rank all-sum bridge (whole-frame and streamed per-piece codec
+        callbacks, `mlx_distributed_set_streamed_seal_codec`) and optional
+        process-allocation cap API.
         Bootstrap validates dimensions and sequences but its owner authenticates
         the channel. Sealed collective callbacks retain their existing no-reentry
         contract. Allocation-cap installation and snapshots forward the matching
