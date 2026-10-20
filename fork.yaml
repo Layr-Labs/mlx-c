@@ -97,6 +97,9 @@ def:
           that declares which caller-owned input buffers the kernel writes (the core's
           mutable-input contract, used for in-place paged KV updates). The existing constructor
           and its read-only ABI are unchanged.
+        - `mlx_fast_metal_kernel_new_fenced` — the same with fenced inputs: inputs that can come
+          from a CPU stream in the same eval, which the kernel waits for itself (core
+          `metal_kernel_with_fenced_inputs`, opt-in `MLX_METAL_FENCED_INPUTS=1`).
         - The scaled-dot-product-attention binding passes the `force_fused` argument MLX 0.32.2
           added to the core call, as `false`, so the C signature and pre-0.32.2 behaviour are
           preserved.
