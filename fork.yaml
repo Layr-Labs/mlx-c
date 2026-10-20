@@ -42,6 +42,10 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
+        The current pin is the single-Mac native stack: quantized tile bounds, the optional
+        process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
+        launch geometry with the explicit compiler-capacity retry. It carries no JACCL or
+        sealed-collective changes; those live on `darkbloom/sealed-all-sum`.
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
@@ -67,6 +71,17 @@ def:
         - "mlx/c/memory.h"
         - "mlx/c/memory.cpp"
         - "python/mlxhooks.py"
+    - title: "Memory: optional process allocation cap"
+      description: |
+        `mlx_install_process_allocation_cap` installs the core's install-once Metal backing cap
+        and `mlx_get_process_allocation_cap_snapshot` reads its ledger (limit, fixed heap, live,
+        cached, pending, unreclaimed, charged and peak bytes). Both forward to the matching core
+        accounting and report failures through the error handler; CPU and CUDA builds refuse.
+        The standalone example checks that interface. Consumed as
+        `Memory.installProcessAllocationCap` / `Memory.processAllocationCapSnapshot` in mlx-swift.
+      globs:
+        - "mlx/c/memory_cap.cpp"
+        - "examples/cap-tests/memory_cap.cpp"
     - title: "Array: buffer metadata and constant-cache identity"
       description: |
         Two non-evaluating inspections the quantized-inference path in mlx-swift relies on:
