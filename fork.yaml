@@ -47,8 +47,10 @@ def:
         orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
         collective between two GPU passes could otherwise leave the GPU spinning forever),
         and carries 1 MiB JACCL frames, batched buffer retention, a cached custom-kernel
-        source per kernel (host time only) and the streamed sealed all-sum (per-piece
-        AES-256-GCM over a two-rank JACCL exchange).
+        source per kernel (host time only), the streamed sealed all-sum (per-piece
+        AES-256-GCM over a two-rank JACCL exchange), opt-in fused fence updates and
+        fenced custom-kernel inputs, and cheaper custom-kernel launches and graph
+        bookkeeping (host time only).
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
