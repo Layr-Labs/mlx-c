@@ -546,7 +546,9 @@ extern "C" int mlx_fast_metal_kernel_apply(
     const mlx_fast_metal_kernel_config config,
     const mlx_stream stream) {
   try {
-    auto config_ctx = mlx_fast_metal_kernel_config_get_(config);
+    // By reference: a copy of the config (shapes, template arguments) per
+    // launch is avoidable host work.
+    const auto& config_ctx = mlx_fast_metal_kernel_config_get_(config);
     mlx_vector_array_set_(
         *outputs,
         mlx_fast_metal_kernel_get_(cls)(
@@ -558,6 +560,59 @@ extern "C" int mlx_fast_metal_kernel_apply(
             config_ctx.template_args,
             config_ctx.init_value,
             config_ctx.verbose,
+            mlx_stream_get_(stream)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+struct mlx_fast_metal_kernel_launch_cpp_ {
+  const mlx::core::fast::CustomKernelFunction* mkf;
+  mlx_fast_metal_kernel_config_cpp_ config;
+};
+
+extern "C" mlx_fast_metal_kernel_launch mlx_fast_metal_kernel_launch_new(
+    mlx_fast_metal_kernel cls,
+    const mlx_fast_metal_kernel_config config) {
+  try {
+    return mlx_fast_metal_kernel_launch(
+        {new mlx_fast_metal_kernel_launch_cpp_{
+            &mlx_fast_metal_kernel_get_(cls),
+            mlx_fast_metal_kernel_config_get_(config)}});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return mlx_fast_metal_kernel_launch({nullptr});
+  }
+}
+
+extern "C" void mlx_fast_metal_kernel_launch_free(
+    mlx_fast_metal_kernel_launch launch) {
+  delete static_cast<mlx_fast_metal_kernel_launch_cpp_*>(launch.ctx);
+}
+
+extern "C" int mlx_fast_metal_kernel_launch_apply(
+    mlx_vector_array* outputs,
+    mlx_fast_metal_kernel_launch launch,
+    const mlx_vector_array inputs,
+    const mlx_stream stream) {
+  try {
+    if (!launch.ctx) {
+      throw std::runtime_error("expected a non-empty mlx_fast_metal_kernel_launch");
+    }
+    auto& l = *static_cast<mlx_fast_metal_kernel_launch_cpp_*>(launch.ctx);
+    mlx_vector_array_set_(
+        *outputs,
+        (*l.mkf)(
+            mlx_vector_array_get_(inputs),
+            l.config.output_shapes,
+            l.config.output_dtypes,
+            l.config.grid,
+            l.config.thread_group,
+            l.config.template_args,
+            l.config.init_value,
+            l.config.verbose,
             mlx_stream_get_(stream)));
   } catch (std::exception& e) {
     mlx_error(e.what());
