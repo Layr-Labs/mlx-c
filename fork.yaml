@@ -43,7 +43,10 @@ def:
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
         The current pin also preserves 512- and 1024-thread custom Metal launch geometry
-        while retrying an insufficient pipeline with its explicit compiler capacity.
+        while retrying an insufficient pipeline with its explicit compiler capacity,
+        orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
+        collective between two GPU passes could otherwise leave the GPU spinning forever),
+        and carries 1 MiB JACCL frames.
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
