@@ -84,18 +84,27 @@ def:
       globs:
         - "mlx/c/array.h"
         - "mlx/c/array.cpp"
-    - title: "Fast: mutable-input Metal kernels and the SDPA signature"
+    - title: "Fast: mutable inputs, per-kernel math modes and the SDPA signature"
       description: |
         - `mlx_fast_metal_kernel_new_mutable` — a second constructor for custom Metal kernels
           that declares which caller-owned input buffers the kernel writes (the core's
           mutable-input contract, used for in-place paged KV updates). The existing constructor
           and its read-only ABI are unchanged.
+        - `mlx_fast_metal_kernel_new_with_options` adds an explicit safe, relaxed or fast
+          compiler math mode for one custom kernel, including mutable-input metadata.
+          Legacy constructors remain unchanged; this does not alter process-wide defaults.
+          Non-safe modes require operation-specific numerical and platform qualification.
+          The generator extension retains both added constructors when bindings regenerate.
+          `MLX_C_BUILD_TESTS` enables constructor/error-contract tests without GPU execution.
         - The scaled-dot-product-attention binding passes the `force_fused` argument MLX 0.32.2
           added to the core call, as `false`, so the C signature and pre-0.32.2 behaviour are
           preserved.
       globs:
         - "mlx/c/fast.h"
         - "mlx/c/fast.cpp"
+        - "python/metal_kernel_options.py"
+        - "tests/metal_kernel_options.cpp"
+        - "docs/src/fast.rst"
     - title: "Stream: cross-thread default streams"
       description: |
         MLX 0.32 made the default stream's Metal command encoder thread-local, so a graph built
