@@ -50,7 +50,8 @@ def:
         source per kernel (host time only), the streamed sealed all-sum (per-piece
         AES-256-GCM over a two-rank JACCL exchange), opt-in fused fence updates and
         fenced custom-kernel inputs, and cheaper custom-kernel launches and graph
-        bookkeeping (host time only).
+        bookkeeping (host time only), and the thread-scoped command-buffer commit limits. The
+        page-backed footprint change is reverted, as on the single-Mac stack.
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
@@ -76,6 +77,17 @@ def:
         - "mlx/c/memory.h"
         - "mlx/c/memory.cpp"
         - "python/mlxhooks.py"
+    - title: "Memory: optional process allocation cap"
+      description: |
+        `mlx_install_process_allocation_cap` installs the core's install-once Metal backing cap
+        and `mlx_get_process_allocation_cap_snapshot` reads its ledger (limit, fixed heap, live,
+        cached, pending, unreclaimed, charged and peak bytes). Both forward to the matching core
+        accounting and report failures through the error handler; CPU and CUDA builds refuse.
+        The standalone example checks that interface. Consumed as
+        `Memory.installProcessAllocationCap` / `Memory.processAllocationCapSnapshot` in mlx-swift.
+      globs:
+        - "mlx/c/memory_cap.cpp"
+        - "examples/cap-tests/memory_cap.cpp"
     - title: "Array: buffer metadata and constant-cache identity"
       description: |
         Two non-evaluating inspections the quantized-inference path in mlx-swift relies on:
@@ -93,7 +105,7 @@ def:
       globs:
         - "mlx/c/array.h"
         - "mlx/c/array.cpp"
-    - title: "Fast: mutable-input Metal kernels and the SDPA signature"
+    - title: "Fast: mutable and fenced inputs, per-kernel math modes and the SDPA signature"
       description: |
         - `mlx_fast_metal_kernel_new_mutable` — a second constructor for custom Metal kernels
           that declares which caller-owned input buffers the kernel writes (the core's
@@ -102,12 +114,21 @@ def:
         - `mlx_fast_metal_kernel_new_fenced` — the same with fenced inputs: inputs that can come
           from a CPU stream in the same eval, which the kernel waits for itself (core
           `metal_kernel_with_fenced_inputs`, opt-in `MLX_METAL_FENCED_INPUTS=1`).
+        - `mlx_fast_metal_kernel_new_with_options` adds an explicit safe, relaxed or fast
+          compiler math mode for one custom kernel, including mutable-input metadata.
+          Legacy constructors remain unchanged; this does not alter process-wide defaults.
+          Non-safe modes require operation-specific numerical and platform qualification.
+          The generator extension retains both added constructors when bindings regenerate.
+          `MLX_C_BUILD_TESTS` enables constructor/error-contract tests without GPU execution.
         - The scaled-dot-product-attention binding passes the `force_fused` argument MLX 0.32.2
           added to the core call, as `false`, so the C signature and pre-0.32.2 behaviour are
           preserved.
       globs:
         - "mlx/c/fast.h"
         - "mlx/c/fast.cpp"
+        - "python/metal_kernel_options.py"
+        - "tests/metal_kernel_options.cpp"
+        - "docs/src/fast.rst"
     - title: "Stream: cross-thread default streams"
       description: |
         MLX 0.32 made the default stream's Metal command encoder thread-local, so a graph built
@@ -130,24 +151,20 @@ def:
         - "FORKDIFF.md"
         - "README.md"
 
-    - title: "Cluster bootstrap, sealed collectives and allocation caps"
+    - title: "Cluster bootstrap and sealed collectives"
       description: |
         The feature branch carries the bounded owner-provided bootstrap exchange,
         sealed two-rank all-sum bridge (whole-frame and streamed per-piece codec
-        callbacks, `mlx_distributed_set_streamed_seal_codec`) and optional
-        process-allocation cap API.
+        callbacks, `mlx_distributed_set_streamed_seal_codec`).
         Bootstrap validates dimensions and sequences but its owner authenticates
         the channel. Sealed collective callbacks retain their existing no-reentry
-        contract. Allocation-cap installation and snapshots forward the matching
-        core accounting; the standalone example checks that interface. These
+        contract. These
         pre-existing feature changes remain present when adding startup waits.
       globs:
         - "mlx/c/distributed_bootstrap.cpp"
         - "mlx/c/private/distributed_bootstrap.h"
         - "mlx/c/distributed_group.h"
         - "mlx/c/distributed_sealed.cpp"
-        - "mlx/c/memory_cap.cpp"
-        - "examples/cap-tests/memory_cap.cpp"
     - title: "Distributed: bounded one-shot startup readiness"
       description: |
         The begin/end startup-wait C entry points validate group handles and
@@ -163,3 +180,4 @@ def:
 # ignored globally, does not count towards line count
 ignore:
   - "fork.yaml"
+  - ".github/**"
