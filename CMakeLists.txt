@@ -35,7 +35,7 @@ else()
   FetchContent_Declare(
     mlx
     GIT_REPOSITORY "https://github.com/Layr-Labs/mlx.git"
-    GIT_TAG 4a3557460a1ba308fcc2b8b0b62bbeec20569355)
+    GIT_TAG 6ee3062c7fcba32f36eb50cbb9df3d1d755735ba)
   FetchContent_MakeAvailable(mlx)
 endif()
 
