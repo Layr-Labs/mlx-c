@@ -44,7 +44,7 @@ def:
         each time the core gains a new entry point.
         The current pin is the head of the Layr-Labs/mlx upstream sync PR (Layr-Labs/mlx#38): the
         merge of upstream ml-explore/mlx main `c6abf0dbb` (2026-10-22), its quantized-kernel merge
-        repairs and fork test updates.
+        repairs, fork test updates and a CPU `floor_divide` overflow guard.
         It carries the single-Mac native stack: quantized tile bounds, the optional
         process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
         launch geometry with the explicit compiler-capacity retry. It also has the core
