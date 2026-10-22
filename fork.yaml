@@ -42,8 +42,9 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
-        The current pin is the Layr-Labs/mlx merge of upstream ml-explore/mlx main `c6abf0dbb`
-        (2026-10-22). It carries the single-Mac native stack: quantized tile bounds, the optional
+        The current pin is the Layr-Labs/mlx upstream sync branch head: the merge of upstream
+        ml-explore/mlx main `c6abf0dbb` (2026-10-22) plus its quantized-kernel merge repairs.
+        It carries the single-Mac native stack: quantized tile bounds, the optional
         process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
         launch geometry with the explicit compiler-capacity retry. It also has the core
         functions that the upstream MLX 0.32.4 bindings call. It carries no JACCL or
