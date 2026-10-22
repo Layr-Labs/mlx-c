@@ -497,6 +497,67 @@ extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_mutable(
   return {nullptr};
 }
 
+extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_fenced(
+    const char* name,
+    const mlx_vector_string input_names,
+    const mlx_vector_string output_names,
+    const char* source,
+    const char* header,
+    bool ensure_row_contiguous,
+    bool atomic_outputs,
+    const mlx_vector_string mutable_input_names,
+    const mlx_vector_string fenced_input_names) {
+  try {
+    return mlx_fast_metal_kernel({new mlx_fast_metal_kernel_cpp_(
+        mlx::core::fast::metal_kernel_with_fenced_inputs(
+            name, mlx_vector_string_get_(input_names),
+            mlx_vector_string_get_(output_names), source,
+            mlx_vector_string_get_(mutable_input_names),
+            mlx_vector_string_get_(fenced_input_names), header,
+            ensure_row_contiguous, atomic_outputs))});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+  }
+  return {nullptr};
+}
+
+extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_with_options(
+    const char* name,
+    const mlx_vector_string input_names,
+    const mlx_vector_string output_names,
+    const char* source,
+    const char* header,
+    bool ensure_row_contiguous,
+    bool atomic_outputs,
+    const mlx_vector_string mutable_input_names,
+    mlx_fast_metal_kernel_math_mode math_mode) {
+  try {
+    mlx::core::CompileOptions options;
+    switch (math_mode) {
+      case MLX_FAST_METAL_MATH_SAFE:
+        options.math_mode = mlx::core::MathMode::Safe;
+        break;
+      case MLX_FAST_METAL_MATH_RELAXED:
+        options.math_mode = mlx::core::MathMode::Relaxed;
+        break;
+      case MLX_FAST_METAL_MATH_FAST:
+        options.math_mode = mlx::core::MathMode::Fast;
+        break;
+      default:
+        throw std::invalid_argument("Unknown custom Metal kernel math mode.");
+    }
+    return mlx_fast_metal_kernel({new mlx_fast_metal_kernel_cpp_(
+        mlx::core::fast::metal_kernel_with_mutable_inputs(
+            name, mlx_vector_string_get_(input_names),
+            mlx_vector_string_get_(output_names), source,
+            mlx_vector_string_get_(mutable_input_names), header,
+            ensure_row_contiguous, atomic_outputs, options))});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+  }
+  return {nullptr};
+}
+
 inline mlx::core::fast::CustomKernelFunction& mlx_fast_metal_kernel_get_(
     mlx_fast_metal_kernel d) {
   if (!d.ctx) {
@@ -522,7 +583,9 @@ extern "C" int mlx_fast_metal_kernel_apply(
     const mlx_fast_metal_kernel_config config,
     const mlx_stream stream) {
   try {
-    auto config_ctx = mlx_fast_metal_kernel_config_get_(config);
+    // By reference: a copy of the config (shapes, template arguments) per
+    // launch is avoidable host work.
+    const auto& config_ctx = mlx_fast_metal_kernel_config_get_(config);
     mlx_vector_array_set_(
         *outputs,
         mlx_fast_metal_kernel_get_(cls)(
@@ -534,6 +597,59 @@ extern "C" int mlx_fast_metal_kernel_apply(
             config_ctx.template_args,
             config_ctx.init_value,
             config_ctx.verbose,
+            mlx_stream_get_(stream)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
+struct mlx_fast_metal_kernel_launch_cpp_ {
+  const mlx::core::fast::CustomKernelFunction* mkf;
+  mlx_fast_metal_kernel_config_cpp_ config;
+};
+
+extern "C" mlx_fast_metal_kernel_launch mlx_fast_metal_kernel_launch_new(
+    mlx_fast_metal_kernel cls,
+    const mlx_fast_metal_kernel_config config) {
+  try {
+    return mlx_fast_metal_kernel_launch(
+        {new mlx_fast_metal_kernel_launch_cpp_{
+            &mlx_fast_metal_kernel_get_(cls),
+            mlx_fast_metal_kernel_config_get_(config)}});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return mlx_fast_metal_kernel_launch({nullptr});
+  }
+}
+
+extern "C" void mlx_fast_metal_kernel_launch_free(
+    mlx_fast_metal_kernel_launch launch) {
+  delete static_cast<mlx_fast_metal_kernel_launch_cpp_*>(launch.ctx);
+}
+
+extern "C" int mlx_fast_metal_kernel_launch_apply(
+    mlx_vector_array* outputs,
+    mlx_fast_metal_kernel_launch launch,
+    const mlx_vector_array inputs,
+    const mlx_stream stream) {
+  try {
+    if (!launch.ctx) {
+      throw std::runtime_error("expected a non-empty mlx_fast_metal_kernel_launch");
+    }
+    auto& l = *static_cast<mlx_fast_metal_kernel_launch_cpp_*>(launch.ctx);
+    mlx_vector_array_set_(
+        *outputs,
+        (*l.mkf)(
+            mlx_vector_array_get_(inputs),
+            l.config.output_shapes,
+            l.config.output_dtypes,
+            l.config.grid,
+            l.config.thread_group,
+            l.config.template_args,
+            l.config.init_value,
+            l.config.verbose,
             mlx_stream_get_(stream)));
   } catch (std::exception& e) {
     mlx_error(e.what());
