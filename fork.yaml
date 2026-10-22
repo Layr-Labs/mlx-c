@@ -9,11 +9,11 @@ footer: |
 base:
   name: ml-explore/mlx-c
   url: https://github.com/ml-explore/mlx-c
-  # The upstream commit this fork is rebased onto. CI (`scripts/check_forkdiff.py`)
-  # requires this to equal `git merge-base HEAD upstream/main`, so a rebase onto
-  # newer upstream fails the gate until the hash — and the sections below — are
-  # brought up to date. Upstream main as of 2026-04-23 (bindings for MLX 0.31.2).
-  hash: fba4470b89073180056c9ea46c443051375f7399
+  # The last upstream commit merged into this fork. CI (`scripts/check_forkdiff.py`)
+  # requires this to equal `git merge-base HEAD upstream/main`. Each upstream merge
+  # moves this hash and re-validates every section below.
+  # Upstream main as of 2026-10-22 (57731b0, bindings for MLX 0.32.4).
+  hash: 57731b00e8bed710e0750e7356da9f18f8eb3e20
 fork:
   name: Layr-Labs/mlx-c
   url: https://github.com/Layr-Labs/mlx-c
@@ -99,7 +99,7 @@ def:
       globs:
         - "mlx/c/array.h"
         - "mlx/c/array.cpp"
-    - title: "Fast: mutable inputs, per-kernel math modes and the SDPA signature"
+    - title: "Fast: mutable inputs and per-kernel math modes"
       description: |
         - `mlx_fast_metal_kernel_new_mutable` — a second constructor for custom Metal kernels
           that declares which caller-owned input buffers the kernel writes (the core's
@@ -111,9 +111,6 @@ def:
           Non-safe modes require operation-specific numerical and platform qualification.
           The generator extension retains both added constructors when bindings regenerate.
           `MLX_C_BUILD_TESTS` enables constructor/error-contract tests without GPU execution.
-        - The scaled-dot-product-attention binding passes the `force_fused` argument MLX 0.32.2
-          added to the core call, as `false`, so the C signature and pre-0.32.2 behaviour are
-          preserved.
       globs:
         - "mlx/c/fast.h"
         - "mlx/c/fast.cpp"
@@ -129,6 +126,9 @@ def:
         core's `new_thread_unsafe_stream`, whose encoder is registered globally, letting
         mlx-swift restore a single process-wide default stream. "Thread-unsafe" means the caller
         serializes submission; it is not locked for concurrent multi-thread use.
+        Upstream now binds the same core function as `mlx_stream_new_thread_unsafe(dev)`.
+        The fork keeps its two no-argument names because the Layr-Labs/mlx-swift `Stream`
+        code calls them. Remove them when mlx-swift calls the upstream name.
       globs:
         - "mlx/c/stream.h"
         - "mlx/c/stream.cpp"

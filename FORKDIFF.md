@@ -42,8 +42,9 @@ section with a short description). Files that are not code go under the
 top-level `ignore`. Keep globs specific: a `mlx/**` catch-all would swallow
 upstream's changes after a bad rebase and defeat the gate.
 
-**Rebasing onto newer upstream.** The gate will fail with the new merge-base
-in its message:
+**Merging newer upstream.** The fork merges upstream `main` with a merge
+commit when the owner directs. Each merge moves `base.hash` and re-validates
+every section. The gate fails with the new merge-base in its message:
 
 ```
 git fetch https://github.com/ml-explore/mlx-c.git main:refs/remotes/upstream/main
