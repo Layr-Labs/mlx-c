@@ -45,8 +45,8 @@ def:
         The current pin is the head of the Layr-Labs/mlx upstream sync PR (Layr-Labs/mlx#38): the
         merge of upstream ml-explore/mlx main `c6abf0dbb` (2026-10-22), its quantized-kernel merge
         repairs, fork test updates, a CPU `floor_divide` overflow guard, 64-bit products in the
-        JACCL ring and the vector SDPA layout check, a CPU `qqmm` that refuses a global scale, and CPU BLAS gemm
-        calls that clear C when beta is 0.
+        JACCL ring and the vector SDPA layout check, a CPU `qqmm` that refuses a global scale, CPU BLAS gemm
+        calls that clear C when beta is 0, and `array::is_uniquely_referenced()`.
         It carries the single-Mac native stack: quantized tile bounds, the optional
         process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
         launch geometry with the explicit compiler-capacity retry. It also has the core
@@ -96,6 +96,10 @@ def:
           count, row-contiguity, uniqueness) for an *already evaluated* array. Unavailable backing
           is reported as `available=false` rather than forcing an eval or a stream sync; views may
           report shared backing and the fields confer no ownership.
+          `unique` comes from `array::is_uniquely_referenced()` in the Layr-Labs/mlx core: no other
+          array references the array or its data. It does not require MLX to own the buffer, so a
+          wrapped external buffer can be unique (upstream #4634 made `is_donatable()` require
+          ownership).
         - `_mlx_array_constant_cache_identity` — the backing descriptor's identity plus a
           transform-safety predicate, so a Swift constant cache can reuse an unchanged constant's
           exact cast across calls without mistaking a mutated array for its former contents. It
