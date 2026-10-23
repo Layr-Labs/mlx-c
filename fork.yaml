@@ -46,7 +46,8 @@ def:
         merge of upstream ml-explore/mlx main `c6abf0dbb` (2026-10-22), its quantized-kernel merge
         repairs, fork test updates, a CPU `floor_divide` overflow guard, 64-bit products in the
         JACCL ring and the vector SDPA layout check, a CPU `qqmm` that refuses a global scale, CPU BLAS gemm
-        calls that clear C when beta is 0, and `array::is_uniquely_referenced()`.
+        calls that clear C when beta is 0, `array::is_uniquely_referenced()`, and an `async_eval`
+        that does not throw a stream task error.
         It carries the single-Mac native stack: quantized tile bounds, the optional
         process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
         launch geometry with the explicit compiler-capacity retry. It also has the core
