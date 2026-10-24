@@ -42,12 +42,16 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
-        The current pin is the head of the Layr-Labs/mlx upstream sync PR (Layr-Labs/mlx#38): the
-        merge of upstream ml-explore/mlx main `c6abf0dbb` (2026-10-22) and `afc03c511` (2026-10-23), its quantized-kernel merge
+        The current pin is `ff4bb35b`, the head of Layr-Labs/mlx#43, which is based on
+        Layr-Labs/mlx `main` `c51f9f32` (the merge commit of Layr-Labs/mlx#40).
+        It has the upstream sync (Layr-Labs/mlx#38): the merge of upstream ml-explore/mlx main
+        `c6abf0dbb` (2026-10-22) and `afc03c511` (2026-10-23), its quantized-kernel merge
         repairs, fork test updates, a CPU `floor_divide` overflow guard, 64-bit products in the
         JACCL ring and the vector SDPA layout check, a CPU `qqmm` that refuses a global scale, CPU BLAS gemm
         calls that clear C when beta is 0, `array::is_uniquely_referenced()`, and an `async_eval`
-        that does not throw a stream task error.
+        that does not throw a stream task error. It also has float16 and bfloat16 floor divide
+        in float32 (Layr-Labs/mlx#40) and, from #43, a freed compiled closure that is erased
+        from every thread compile cache.
         It carries the single-Mac native stack: quantized tile bounds, the optional
         process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
         launch geometry with the explicit compiler-capacity retry. It also has the core
