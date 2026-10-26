@@ -680,7 +680,9 @@ extern "C" int mlx_array_get_buffer_info(
     *data_offset = value.offset();
     *data_elements = value.data_size();
     *row_contiguous = value.flags().row_contiguous;
-    *unique = value.is_donatable();
+    // No other array references this array or its data. Ownership of the
+    // buffer does not matter here (a wrapped external buffer can be unique).
+    *unique = value.is_uniquely_referenced();
     *available = true;
   } catch (std::exception& e) {
     mlx_error(e.what());
