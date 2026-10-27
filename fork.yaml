@@ -157,6 +157,19 @@ def:
         - "FORKDIFF.md"
         - "README.md"
 
+    - title: "Distributed: owner-supplied JACCL bootstrap"
+      description: |
+        `mlx_distributed_init_jaccl_with_bootstrap` starts a strict JACCL group without
+        TCPAllGather. It forwards to the core `init(strict, "jaccl", factory)` overload, and the
+        factory routes each bootstrap all-gather to an owner callback. The bridge checks rank,
+        size, per-rank and total byte bounds and a sequence counter, and refuses a cached JACCL
+        group. The callback context is released only when the core drops the factory. The owner
+        authenticates its channel; this API does not authenticate bytes.
+      globs:
+        - "mlx/c/distributed_bootstrap.cpp"
+        - "mlx/c/private/distributed_bootstrap.h"
+        - "mlx/c/distributed_group.h"
+
 # ignored globally, does not count towards line count
 ignore:
   - "fork.yaml"
