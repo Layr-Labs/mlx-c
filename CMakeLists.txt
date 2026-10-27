@@ -49,6 +49,7 @@ set(mlxc-src
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/cuda.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/device.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_bootstrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_group.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_sealed.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/error.cpp

@@ -59,8 +59,11 @@ typedef void (*mlx_distributed_bootstrap_release)(void* context);
  * Strict JACCL initialization through an owner callback, without TCPAllGather.
  * Existing cached JACCL initialization is rejected; it is not reauthenticated.
  * Both callbacks are required. When release_context is non-null, this call
- * consumes one context reference on every path. Release can occur only when
- * the native backend cache is destroyed, not when one group handle is freed.
+ * consumes one context reference on every path. On success, release runs when
+ * the last reference to the native group is dropped; the backend cache and
+ * every group handle and graph that uses the group hold one, so in practice
+ * release runs at process exit. Do not call this concurrently with any other
+ * distributed initialization: the native backend cache is not locked.
  * Callback failure is permanent. This API itself does not authenticate bytes.
  * Bounds: 2..64 ranks, 1..1MiB per rank, at most 8MiB total; the total bound
  * must fit all ranks at their per-rank bound. Use a fresh worker per epoch.
