@@ -56,7 +56,6 @@ are refused through the installed error handler with a nonzero return value.
 No call clears failure, changes memory caps or authenticates transport. The
 embedding runtime still owns hard startup cancellation and readiness publication.
 
-These entry points require the matching core startup-wait implementation. The
-consumer pin must advance with its reviewed immutable core successor before a
-complete native build. Standalone CPU regression instructions are in
+These entry points require the matching core startup-wait implementation; the
+CMake core pin carries it. Standalone CPU regression instructions are in
 `tests/standalone/README.md`; they do not qualify native RDMA or GPU execution.

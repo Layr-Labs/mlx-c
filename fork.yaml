@@ -42,6 +42,9 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
+        The current pin is `ea318ee0`, the core that Layr-Labs/mlx-swift builds for the cluster
+        stack. It contains main's previous pin `ff4bb35b` and the sealed reduce-scatter and
+        all-gather (`360d11b9`) that `distributed_sealed.cpp` calls.
         The current pin also preserves 512- and 1024-thread custom Metal launch geometry
         while retrying an insufficient pipeline with its explicit compiler capacity,
         orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
@@ -122,7 +125,12 @@ def:
           compiler math mode for one custom kernel, including mutable-input metadata.
           Legacy constructors remain unchanged; this does not alter process-wide defaults.
           Non-safe modes require operation-specific numerical and platform qualification.
-          The generator extension retains both added constructors when bindings regenerate.
+          The generator extension retains `new_mutable` and `new_with_options` when bindings
+          regenerate. It does not yet emit `new_fenced` or the prepared-launch functions, so a
+          regeneration must carry those hand edits over.
+        - `mlx_fast_metal_kernel_launch_new` / `_apply` / `_free` — a prepared launch: a kernel
+          bound once to a copied config and applied to new inputs without rebuilding the
+          config (host time only). The kernel must outlive the launch.
           `MLX_C_BUILD_TESTS` enables constructor/error-contract tests without GPU execution.
       globs:
         - "mlx/c/fast.h"
@@ -159,7 +167,9 @@ def:
       description: |
         The feature branch carries the bounded owner-provided bootstrap exchange,
         sealed two-rank all-sum bridge (whole-frame and streamed per-piece codec
-        callbacks, `mlx_distributed_set_streamed_seal_codec`).
+        callbacks, `mlx_distributed_set_streamed_seal_codec`), and the sealed two-rank
+        reduce-scatter and all-gather (`mlx_distributed_reduce_scatter_sealed`,
+        `mlx_distributed_all_gather_sealed`) on the same codec and counter.
         Bootstrap validates dimensions and sequences but its owner authenticates
         the channel. Sealed collective callbacks retain their existing no-reentry
         contract. These

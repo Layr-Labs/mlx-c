@@ -13,5 +13,4 @@ bounds, exactly-once forwarding, running/ended/failed/unsupported refusal and
 error-handler reporting. Dead stripping excludes unrelated backend operations;
 no fake core symbols, RDMA service, Metal framework or GPU evaluator is linked.
 This lightweight runner uses the macOS linker and does not qualify native RDMA,
-actual hardware, or the full C library. The core pin must be updated to the
-reviewed successor before an ordinary whole-library consumer build.
+actual hardware, or the full C library.
