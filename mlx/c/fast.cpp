@@ -8,6 +8,25 @@
 #include "mlx/c/private/mlx.h"
 #include "mlx/fast.h"
 
+extern "C" int mlx_fast_cross_entropy(
+    mlx_array* res,
+    const mlx_array logits,
+    const mlx_array targets,
+    const mlx_stream s) {
+  try {
+    mlx_array_set_(
+        *res,
+        mlx::core::fast::cross_entropy(
+            mlx_array_get_(logits),
+            mlx_array_get_(targets),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
+
 struct mlx_fast_cuda_kernel_config_cpp_ {
   std::vector<mlx::core::Shape> output_shapes;
   std::vector<mlx::core::Dtype> output_dtypes;
@@ -251,6 +270,37 @@ extern "C" int mlx_fast_cuda_kernel_apply(
   return 0;
 }
 
+extern "C" int mlx_fast_gated_delta_update(
+    mlx_vector_array* res,
+    const mlx_array queries,
+    const mlx_array keys,
+    const mlx_array values,
+    const mlx_array gates,
+    const mlx_array beta_,
+    const mlx_array initial_state /* may be null */,
+    const mlx_array mask /* may be null */,
+    const mlx_stream s) {
+  try {
+    mlx_vector_array_set_(
+        *res,
+        mlx::core::fast::gated_delta_update(
+            mlx_array_get_(queries),
+            mlx_array_get_(keys),
+            mlx_array_get_(values),
+            mlx_array_get_(gates),
+            mlx_array_get_(beta_),
+            (initial_state.ctx
+                 ? std::make_optional(mlx_array_get_(initial_state))
+                 : std::nullopt),
+            (mask.ctx ? std::make_optional(mlx_array_get_(mask))
+                      : std::nullopt),
+            mlx_stream_get_(s)));
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+  return 0;
+}
 extern "C" int mlx_fast_layer_norm(
     mlx_array* res,
     const mlx_array x,
@@ -497,6 +547,43 @@ extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_mutable(
   return {nullptr};
 }
 
+extern "C" mlx_fast_metal_kernel mlx_fast_metal_kernel_new_with_options(
+    const char* name,
+    const mlx_vector_string input_names,
+    const mlx_vector_string output_names,
+    const char* source,
+    const char* header,
+    bool ensure_row_contiguous,
+    bool atomic_outputs,
+    const mlx_vector_string mutable_input_names,
+    mlx_fast_metal_kernel_math_mode math_mode) {
+  try {
+    mlx::core::CompileOptions options;
+    switch (math_mode) {
+      case MLX_FAST_METAL_MATH_SAFE:
+        options.math_mode = mlx::core::MathMode::Safe;
+        break;
+      case MLX_FAST_METAL_MATH_RELAXED:
+        options.math_mode = mlx::core::MathMode::Relaxed;
+        break;
+      case MLX_FAST_METAL_MATH_FAST:
+        options.math_mode = mlx::core::MathMode::Fast;
+        break;
+      default:
+        throw std::invalid_argument("Unknown custom Metal kernel math mode.");
+    }
+    return mlx_fast_metal_kernel({new mlx_fast_metal_kernel_cpp_(
+        mlx::core::fast::metal_kernel_with_mutable_inputs(
+            name, mlx_vector_string_get_(input_names),
+            mlx_vector_string_get_(output_names), source,
+            mlx_vector_string_get_(mutable_input_names), header,
+            ensure_row_contiguous, atomic_outputs, options))});
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+  }
+  return {nullptr};
+}
+
 inline mlx::core::fast::CustomKernelFunction& mlx_fast_metal_kernel_get_(
     mlx_fast_metal_kernel d) {
   if (!d.ctx) {
@@ -632,6 +719,7 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
     const char* mask_mode,
     const mlx_array mask_arr /* may be null */,
     const mlx_array sinks /* may be null */,
+    bool force_fused,
     const mlx_stream s) {
   try {
     mlx_array_set_(
@@ -646,7 +734,7 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
                           : std::nullopt),
             (sinks.ctx ? std::make_optional(mlx_array_get_(sinks))
                        : std::nullopt),
-            false,
+            force_fused,
             mlx_stream_get_(s)));
   } catch (std::exception& e) {
     mlx_error(e.what());

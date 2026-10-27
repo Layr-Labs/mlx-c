@@ -391,6 +391,10 @@ mlx_fast_metal_kernel mlx_fast_metal_kernel_new(
     bool ensure_row_contiguous,
     bool atomic_outputs);
         """
+    # Retain the fork's mutable-input constructor and explicit per-kernel
+    # options when regenerating fast.h/fast.cpp.
+    from metal_kernel_options import extensions
+    custom_code += extensions(implementation)
     __implement_mlx_fast_custom_kernel("metal", custom_code, implementation)
 
 
@@ -529,3 +533,40 @@ extern "C" int mlx_get_memory_snapshot(size_t* active, size_t* cache, size_t* pe
   return 0;
 }'''
         )
+
+
+def mlx_compile(f, implementation):
+    if not implementation:
+        print(
+            """\
+typedef struct mlx_compile_cache_ {
+  void* ctx;
+} mlx_compile_cache;
+mlx_compile_cache mlx_compile_cache_new();
+int mlx_compile_cache_free(mlx_compile_cache cache);
+            """
+        )
+    else:
+        print(
+            """\
+extern "C" mlx_compile_cache mlx_compile_cache_new() {
+  try {
+    return mlx_compile_cache_new_();
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+  }
+  return {nullptr};
+}
+extern "C" int mlx_compile_cache_free(mlx_compile_cache cache) {
+  try {
+    mlx_compile_cache_free_(cache);
+    return 0;
+  } catch (std::exception& e) {
+    mlx_error(e.what());
+    return 1;
+  }
+}
+            """
+        )
+
+    return True

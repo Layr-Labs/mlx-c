@@ -8,11 +8,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 # ----------------------------- Configuration -----------------------------
 if(NOT MLX_C_VERSION)
-  set(MLX_C_VERSION 0.6.0)
+  set(MLX_C_VERSION 0.7.0)
 endif()
 
 option(BUILD_SHARED_LIBS "Build mlx C as a shared library" OFF)
 option(MLX_C_BUILD_EXAMPLES "Build examples for mlx C" ON)
+option(MLX_C_BUILD_TESTS "Build tests for mlx C" OFF)
 option(MLX_C_USE_SYSTEM_MLX "Use system MLX" OFF)
 
 # ----------------------------- mlx -----------------------------
@@ -35,7 +36,7 @@ else()
   FetchContent_Declare(
     mlx
     GIT_REPOSITORY "https://github.com/Layr-Labs/mlx.git"
-    GIT_TAG 76a96e291fa9b1db946f8d5b7d1091110d672cac)
+    GIT_TAG ff4bb35b60c3aadafb9e0bd30b6180cef646fb1a)
   FetchContent_MakeAvailable(mlx)
 endif()
 
@@ -59,6 +60,7 @@ set(mlxc-src
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/linalg.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/map.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/memory.cpp
+    mlx/c/memory_cap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/metal.cpp
     # ${CMAKE_CURRENT_LIST_DIR}/mlx/c/object.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/ops.cpp
@@ -84,6 +86,13 @@ endif()
 
 if(MLX_C_BUILD_EXAMPLES)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples)
+endif()
+
+if(MLX_C_BUILD_TESTS)
+  enable_testing()
+  add_executable(metal_kernel_options_test tests/metal_kernel_options.cpp)
+  target_link_libraries(metal_kernel_options_test PRIVATE mlxc)
+  add_test(NAME metal_kernel_options COMMAND metal_kernel_options_test)
 endif()
 
 # ----------------------------- Installation -----------------------------
