@@ -42,21 +42,19 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
-        The current pin is `ff4bb35b`, the head of Layr-Labs/mlx#43, which is based on
-        Layr-Labs/mlx `main` `c51f9f32` (the merge commit of Layr-Labs/mlx#40).
-        It has the upstream sync (Layr-Labs/mlx#38): the merge of upstream ml-explore/mlx main
-        `c6abf0dbb` (2026-10-22) and `afc03c511` (2026-10-23), its quantized-kernel merge
-        repairs, fork test updates, a CPU `floor_divide` overflow guard, 64-bit products in the
-        JACCL ring and the vector SDPA layout check, a CPU `qqmm` that refuses a global scale, CPU BLAS gemm
-        calls that clear C when beta is 0, `array::is_uniquely_referenced()`, and an `async_eval`
-        that does not throw a stream task error. It also has float16 and bfloat16 floor divide
-        in float32 (Layr-Labs/mlx#40) and, from #43, a freed compiled closure that is erased
-        from every thread compile cache.
-        It carries the single-Mac native stack: quantized tile bounds, the optional
-        process-allocation cap, page-backed footprints and 512- and 1024-thread custom Metal
-        launch geometry with the explicit compiler-capacity retry. It also has the core
-        functions that the upstream MLX 0.32.4 bindings call. It carries no JACCL or
-        sealed-collective changes; those live on `darkbloom/sealed-all-sum`.
+        The current pin is `ea318ee0`, the core that Layr-Labs/mlx-swift builds for the cluster
+        stack. It contains main's previous pin `ff4bb35b` and the sealed reduce-scatter and
+        all-gather (`360d11b9`) that `distributed_sealed.cpp` calls.
+        The current pin also preserves 512- and 1024-thread custom Metal launch geometry
+        while retrying an insufficient pipeline with its explicit compiler capacity,
+        orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
+        collective between two GPU passes could otherwise leave the GPU spinning forever),
+        and carries 1 MiB JACCL frames, batched buffer retention, a cached custom-kernel
+        source per kernel (host time only), the streamed sealed all-sum (per-piece
+        AES-256-GCM over a two-rank JACCL exchange), opt-in fused fence updates and
+        fenced custom-kernel inputs, and cheaper custom-kernel launches and graph
+        bookkeeping (host time only), and the thread-scoped command-buffer commit limits. The
+        page-backed footprint change is reverted, as on the single-Mac stack.
       globs:
         - "CMakeLists.txt"
     - title: "Memory: allocator observability and footprint policy"
@@ -114,17 +112,25 @@ def:
       globs:
         - "mlx/c/array.h"
         - "mlx/c/array.cpp"
-    - title: "Fast: mutable inputs and per-kernel math modes"
+    - title: "Fast: mutable and fenced inputs and per-kernel math modes"
       description: |
         - `mlx_fast_metal_kernel_new_mutable` — a second constructor for custom Metal kernels
           that declares which caller-owned input buffers the kernel writes (the core's
           mutable-input contract, used for in-place paged KV updates). The existing constructor
           and its read-only ABI are unchanged.
+        - `mlx_fast_metal_kernel_new_fenced` — the same with fenced inputs: inputs that can come
+          from a CPU stream in the same eval, which the kernel waits for itself (core
+          `metal_kernel_with_fenced_inputs`, opt-in `MLX_METAL_FENCED_INPUTS=1`).
         - `mlx_fast_metal_kernel_new_with_options` adds an explicit safe, relaxed or fast
           compiler math mode for one custom kernel, including mutable-input metadata.
           Legacy constructors remain unchanged; this does not alter process-wide defaults.
           Non-safe modes require operation-specific numerical and platform qualification.
-          The generator extension retains both added constructors when bindings regenerate.
+          The generator extension retains `new_mutable` and `new_with_options` when bindings
+          regenerate. It does not yet emit `new_fenced` or the prepared-launch functions, so a
+          regeneration must carry those hand edits over.
+        - `mlx_fast_metal_kernel_launch_new` / `_apply` / `_free` — a prepared launch: a kernel
+          bound once to a copied config and applied to new inputs without rebuilding the
+          config (host time only). The kernel must outlive the launch.
           `MLX_C_BUILD_TESTS` enables constructor/error-contract tests without GPU execution.
       globs:
         - "mlx/c/fast.h"
@@ -157,18 +163,33 @@ def:
         - "FORKDIFF.md"
         - "README.md"
 
-    - title: "Distributed: owner-supplied JACCL bootstrap"
+    - title: "Cluster bootstrap and sealed collectives"
       description: |
-        `mlx_distributed_init_jaccl_with_bootstrap` starts a strict JACCL group without
-        TCPAllGather. It forwards to the core `init(strict, "jaccl", factory)` overload, and the
-        factory routes each bootstrap all-gather to an owner callback. The bridge checks rank,
-        size, per-rank and total byte bounds and a sequence counter, and refuses a cached JACCL
-        group. The callback context is released only when the core drops the factory. The owner
-        authenticates its channel; this API does not authenticate bytes.
+        The feature branch carries the bounded owner-provided bootstrap exchange,
+        sealed two-rank all-sum bridge (whole-frame and streamed per-piece codec
+        callbacks, `mlx_distributed_set_streamed_seal_codec`), and the sealed two-rank
+        reduce-scatter and all-gather (`mlx_distributed_reduce_scatter_sealed`,
+        `mlx_distributed_all_gather_sealed`) on the same codec and counter.
+        Bootstrap validates dimensions and sequences but its owner authenticates
+        the channel. Sealed collective callbacks retain their existing no-reentry
+        contract. These
+        pre-existing feature changes remain present when adding startup waits.
       globs:
         - "mlx/c/distributed_bootstrap.cpp"
         - "mlx/c/private/distributed_bootstrap.h"
         - "mlx/c/distributed_group.h"
+        - "mlx/c/distributed_sealed.cpp"
+    - title: "Distributed: bounded one-shot startup readiness"
+      description: |
+        The begin/end startup-wait C entry points validate group handles and
+        finite 1..900000 ms bounds, then forward to the matching core Group API.
+        Exceptions report through the existing error handler and return failure.
+        The embedding runtime drains work, serializes transitions and retains
+        cancellation, authentication and memory safeguards. CPU-only standalone
+        tests cover argument refusal, forwarding and unsupported backends.
+      globs:
+        - "mlx/c/distributed_group.cpp"
+        - "tests/standalone/*"
 
 # ignored globally, does not count towards line count
 ignore:

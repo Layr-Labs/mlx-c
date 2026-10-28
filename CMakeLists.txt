@@ -36,7 +36,7 @@ else()
   FetchContent_Declare(
     mlx
     GIT_REPOSITORY "https://github.com/Layr-Labs/mlx.git"
-    GIT_TAG ff4bb35b60c3aadafb9e0bd30b6180cef646fb1a)
+    GIT_TAG ea318ee053926640c9d19ce10e0ba04f70955f1d)
   FetchContent_MakeAvailable(mlx)
 endif()
 
@@ -51,6 +51,7 @@ set(mlxc-src
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_bootstrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_group.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mlx/c/distributed_sealed.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/error.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/export.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mlx/c/fast.cpp
