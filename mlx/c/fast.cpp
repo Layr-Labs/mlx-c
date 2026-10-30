@@ -808,6 +808,7 @@ extern "C" int mlx_fast_scaled_dot_product_attention(
             mlx_array_get_(keys),
             mlx_array_get_(values),
             scale,
+            /* window_size = */ -1,
             std::string(mask_mode),
             (mask_arr.ctx ? std::make_optional(mlx_array_get_(mask_arr))
                           : std::nullopt),
