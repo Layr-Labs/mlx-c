@@ -42,7 +42,7 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
-        The current pin is `15dd4571`, the head of Layr-Labs/mlx#49: the fork's merge of
+        The current pin is `47c5eb0e`, the head of Layr-Labs/mlx#49: the fork's merge of
         upstream main `1ba7f969` (2026-10-30) on top of `ea318ee0`, the core that Layr-Labs/mlx-swift
         built for the cluster stack. It contains main's previous pin `ff4bb35b` and the sealed
         reduce-scatter and all-gather (`360d11b9`) that `distributed_sealed.cpp` calls. Upstream's
