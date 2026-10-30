@@ -42,9 +42,13 @@ def:
         an upstream release tag. The C functions below wrap core functions that only exist on the
         fork, so the pin is what makes them link; it is bumped together with the header changes
         each time the core gains a new entry point.
-        The current pin is `ea318ee0`, the core that Layr-Labs/mlx-swift builds for the cluster
-        stack. It contains main's previous pin `ff4bb35b` and the sealed reduce-scatter and
-        all-gather (`360d11b9`) that `distributed_sealed.cpp` calls.
+        The current pin is `70245518`, the fork's merge of upstream main `1ba7f969`
+        (2026-10-30, Layr-Labs/mlx#49) on top of `ea318ee0`, the core that Layr-Labs/mlx-swift
+        built for the cluster stack. It contains main's previous pin `ff4bb35b` and the sealed
+        reduce-scatter and all-gather (`360d11b9`) that `distributed_sealed.cpp` calls. Upstream's
+        `fast::scaled_dot_product_attention` gained a `window_size` argument before the mask
+        mode (#4734); `mlx_fast_scaled_dot_product_attention` passes -1 (no window), so the C
+        API and its behaviour are unchanged.
         The current pin also preserves 512- and 1024-thread custom Metal launch geometry
         while retrying an insufficient pipeline with its explicit compiler capacity,
         orders the fast-synch GPU wait after every pending pass on its queue (a CPU-stream
