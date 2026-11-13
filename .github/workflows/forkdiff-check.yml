@@ -1,85 +1,82 @@
-name: Fork Diff Check
-
-# Fails a PR whose `fork.yaml` no longer describes this fork.
-#
-# The fork-diff page (https://layr-labs.github.io/mlx-c/, rendered by
-# protolambda/forkdiff from `fork.yaml`, deployed by forkdiff-pages.yml) is
-# only useful while it is true, and two things make it go stale silently:
-#
-#   1. A rebase onto newer upstream. `base.hash` keeps pointing at the old
-#      upstream commit, so the page shows upstream's own changes as the fork's.
-#      `scripts/check_forkdiff.py` requires base.hash == merge-base(HEAD,
-#      upstream/main); a rebase moves the merge-base and the gate stays red
-#      until the hash — and the sections — are brought up to date.
-#   2. A fork change nobody described. Every file in the base..HEAD diff must
-#      match a section glob (or a global ignore), and every glob must still
-#      match something.
-#
-# The page is also rendered here so a fork.yaml that forkdiff itself rejects
-# cannot merge.
+# Temporary manual-only compatibility canary. Never merge this workflow replacement.
+name: CodeQL three-language native canary (never merge)
 
 on:
-  pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  # Chooses a Darkbloom Sandbox or the Blacksmith fallback for the check.
   route:
     uses: ./.github/workflows/darkbloom-route.yml
     permissions: {}
     with:
       lanes: |
-        forkdiff linux_arm64 blacksmith-4vcpu-ubuntu-2404
+        codeql-canary linux_arm64 ubuntu-22.04
 
-  analysis-up-to-date:
-    name: fork.yaml describes the fork
+  scan:
     needs: route
-    runs-on: ${{ fromJSON(needs.route.outputs.routes)['forkdiff'] }}
-    timeout-minutes: 20
+    runs-on: ${{ fromJSON(needs.route.outputs.routes)['codeql-canary'] }}
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history: merge-base with upstream, and forkdiff diffs against base.hash
-
-      - name: Fetch upstream main
+      - name: Require a native canary runner
+        env:
+          NATIVE_RUNNER: ${{ runner.name }}
         run: |
-          git fetch --no-tags --quiet https://github.com/ml-explore/mlx-c.git \
-            main:refs/remotes/upstream/main
-          echo "upstream/main = $(git rev-parse --short refs/remotes/upstream/main)"
-          echo "merge-base    = $(git merge-base HEAD refs/remotes/upstream/main | cut -c1-12)"
-
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+          [[ "$NATIVE_RUNNER" == darkbloom-* ]]
+          [[ "$(uname -s)" == Linux && "$(uname -m)" == aarch64 ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          python-version: "3.12"
-
-      - name: Verify fork.yaml against the real diff
+          ref: 2bef31cfb39b1261bee0789062e30977bf347e55
+          persist-credentials: false
+      - name: Download the pinned ARM64 CodeQL bundle
         run: |
-          python3 -m pip install --quiet pyyaml
-          python3 scripts/check_forkdiff.py --upstream-ref refs/remotes/upstream/main
-
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: "1.24"
-          cache: false
-
-      - name: Render the fork-diff page
-        # fork.yaml names refs/heads/main; on a PR the checkout is a detached
-        # merge commit, so point the local branch at what we are checking.
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --location --proto '=https' --proto-redir '=https' \
+            --connect-timeout 20 --max-time 600 --output codeql.tar.zst \
+            https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.4/codeql-bundle-linux-arm64.tar.zst
+          echo '1c015b411c6e1c7f7e767eb8c9408fc6a2012d24d78b177cf22f29edc5772d10  codeql.tar.zst' | sha256sum --check
+          tar --zstd -xf codeql.tar.zst
+          "$RUNNER_TEMP/codeql/codeql" version --format=json
+          "$RUNNER_TEMP/codeql/codeql" resolve languages
+      - name: Scan with the current default language suites
         run: |
-          git update-ref refs/heads/main HEAD
-          mkdir -p tmp/pages
-          go run github.com/protolambda/forkdiff@v0.1.1 \
-            -repo . -fork fork.yaml -out tmp/pages/index.html
-          echo "rendered $(wc -c < tmp/pages/index.html) bytes"
-
-      - name: Upload rendered page
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+          set -euo pipefail
+          codeql="$RUNNER_TEMP/codeql/codeql"
+          mkdir "$RUNNER_TEMP/codeql-dbs" "$RUNNER_TEMP/codeql-results"
+          for language in actions cpp python; do
+            case "$language" in
+              cpp) category=/language:c-cpp ;;
+              *) category=/language:$language ;;
+            esac
+            "$codeql" database create "$RUNNER_TEMP/codeql-dbs/$language" \
+              --source-root="$GITHUB_WORKSPACE" --language="$language" \
+              --build-mode=none --threads=4 --ram=8192
+            "$codeql" database analyze "$RUNNER_TEMP/codeql-dbs/$language" \
+              --sarif-category="$category" --format=sarifv2.1.0 --output="$RUNNER_TEMP/codeql-results/$language.sarif" \
+              --threads=4 --ram=8192
+          done
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'codeql-results'
+          result = {'source_sha': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'languages': {}}
+          categories = {'actions': '/language:actions', 'cpp': '/language:c-cpp', 'python': '/language:python'}
+          for language in categories:
+              data = json.loads((root / f'{language}.sarif').read_text())
+              assert data['version'] == '2.1.0' and data['runs'], language
+              assert all(run['automationDetails']['id'] == categories[language] + '/' for run in data['runs']), language
+              rules = [rule for run in data['runs'] for rule in run['tool']['driver'].get('rules', [])]
+              assert rules, language
+              result['languages'][language] = {'category': categories[language], 'rules': len(rules), 'findings': sum(len(run.get('results', [])) for run in data['runs'])}
+          (root / 'summary.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, indent=2))
+          PY
+      - name: Keep canary results without publishing security alerts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: forkdiff-page
-          path: tmp/pages/index.html
-          retention-days: 7
+          name: native-codeql-mlx-c-canary
+          path: ${{ runner.temp }}/codeql-results/
+          if-no-files-found: error
+          retention-days: 3
