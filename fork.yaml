@@ -158,7 +158,28 @@ def:
         The gate that keeps this page honest: `check_forkdiff.py` fails CI when `base.hash`
         is not the merge-base with upstream, or when a file the fork changes is not described
         by a section above. `FORKDIFF.md` explains the day-to-day; the README links the page.
+
+        The fork-diff check and Pages renderer run only on Darkbloom Linux ARM64
+        runners, waiting for compatible capacity instead of using a hosted fallback.
+        Both retain the upstream checks, rendering steps and 20-minute job limits.
+        The protected Pages publication job stays on GitHub-hosted runners.
+        `FORKDIFF.md` documents the queue and qualification limits.
+
+        The disabled native CodeQL workflow scans Actions, C/C++ and Python with
+        the pinned CodeQL 2.27.4 ARM64 bundle and their existing default suites.
+        It requires `CODEQL_NATIVE=on` after an operator switches default setup
+        to advanced setup. The separate GitHub-hosted publisher validates the
+        same run's bounded, fingerprinted SARIF bundle, then uploads the original
+        category identities without checking out or executing repository code.
+        `docs/ci-codeql-native.md` records activation and rollback gates.
       globs:
+        - ".github/actionlint.yaml"
+        - ".github/workflows/forkdiff-check.yml"
+        - ".github/workflows/forkdiff-pages.yml"
+        - ".github/scripts/codeql_artifacts.py"
+        - ".github/scripts/codeql_artifacts_test.py"
+        - ".github/workflows/codeql-native.yml"
+        - "docs/ci-codeql-native.md"
         - "scripts/check_forkdiff.py"
         - "FORKDIFF.md"
         - "README.md"

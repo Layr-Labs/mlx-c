@@ -28,18 +28,9 @@ permissions:
   contents: read
 
 jobs:
-  # Chooses a Darkbloom Sandbox or the Blacksmith fallback for the check.
-  route:
-    uses: ./.github/workflows/darkbloom-route.yml
-    permissions: {}
-    with:
-      lanes: |
-        forkdiff linux_arm64 blacksmith-4vcpu-ubuntu-2404
-
   analysis-up-to-date:
     name: fork.yaml describes the fork
-    needs: route
-    runs-on: ${{ fromJSON(needs.route.outputs.routes)['forkdiff'] }}
+    runs-on: [self-hosted, linux, ARM64, darkbloom-linux-arm64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
