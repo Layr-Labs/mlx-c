@@ -18,6 +18,22 @@ Settings → Pages → Source: **GitHub Actions**. The workflow token cannot do
 this itself. Until it's done the deploy workflow still builds the page (kept
 as a run artifact, `forkdiff-page`) and exits with a notice instead of failing.
 
+## Where CI runs
+
+The fork-diff check and page renderer run only on Darkbloom Linux ARM64
+runners. When capacity is busy they wait for a compatible runner; these two
+jobs have no GitHub-hosted or Blacksmith fallback. Each retains its 20-minute
+job timeout. The current approval also has a one-hour qualification lifetime,
+which bounds waiting and execution; this is not a 24-hour native queue promise.
+
+The check still verifies the real upstream merge-base and renders the page.
+The renderer still uploads a regular HTML artifact. The separate GitHub-hosted
+job packages that artifact and publishes through the protected `github-pages`
+environment. It does not run the renderer or repository code.
+
+The native CodeQL workflow remains off until its separate operator activation
+gates are complete; see [native CodeQL activation](docs/ci-codeql-native.md).
+
 ## The gate
 
 A fork-diff page is only useful while it is true, and two things make it go
