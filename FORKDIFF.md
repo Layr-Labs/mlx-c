@@ -30,6 +30,8 @@ The check still verifies the real upstream merge-base and renders the page.
 The renderer still uploads a regular HTML artifact. The separate GitHub-hosted
 job packages that artifact and publishes through the protected `github-pages`
 environment. It does not run the renderer or repository code.
+If the first deploy fails before it creates a deployment (the packaged artifact
+is not listed yet), the job waits 20 seconds and tries once more.
 
 The native CodeQL workflow remains off until its separate operator activation
 gates are complete; see [native CodeQL activation](docs/ci-codeql-native.md).
